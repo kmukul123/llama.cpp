@@ -13,24 +13,26 @@ jobs:
       - name: Install CUDA Toolkit
         uses: Jimver/cuda-toolkit@v0.2.19
         with:
-          cuda-version: '12.4.1'
+          cuda-version: '13.4.0'
           method: 'network'
 
       - name: Configure CMake
+        shell: pwsh
         run: |
           cmake -B build `
             -DGGML_CUDA=ON `
             -DGGML_CUDA_FA_QUANTS="q4_0-q4_0;q8_0-q8_0;f16-f16;q8_0-q4_0" `
+            -DCMAKE_CUDA_ARCHITECTURES="89" `
             -DCMAKE_BUILD_TYPE=Release
 
       - name: Build llama-server
         run: |
           cmake --build build --config Release -j 4 --target llama-server
 
-      - name: Upload Artifact
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: custom-llama-server-cuda
           path: |
-            build/bin/Release/llama-server.exe
+            build/bin/Release/*.exe
             build/bin/Release/*.dll
