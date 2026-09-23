@@ -1,38 +1,45 @@
-name: Build Custom CUDA llama-server
+name: Build Custom CUDA 13.4 llama-server
 
 on:
   workflow_dispatch:
 
 jobs:
   build-windows-cuda:
-    runs-on: windows-latest
+    runs-on: windows-2022
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Install CUDA Toolkit
-        uses: Jimver/cuda-toolkit@v0.2.19
+      - name: Setup Windows CUDA 13.4
+        uses: ./.github/actions/windows-setup-cuda
         with:
-          cuda-version: '13.4.0'
-          method: 'network'
+          cuda_version: '13.4'
+          cuda_arch: 'x64'
 
-      - name: Configure CMake
+      - name: Install Ninja
+        run: choco install ninja
+
+      - name: Build llama-server and llama-cli
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+          cmake -B build -G "Ninja" ^
+            -DGGML_CUDA=ON ^
+            -DGGML_CUDA_FA_QUANTS="q4_0-q4_0;q8_0-q8_0;f16-f16;bf16-bf16;q8_0-q4_0" ^
+            -DCMAKE_CUDA_ARCHITECTURES="89" ^
+            -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --config Release -j %NUMBER_OF_PROCESSORS% --target llama-server llama-cli
+
+      - name: Copy CUDA runtime DLLs
         shell: pwsh
         run: |
-          cmake -B build `
-            -DGGML_CUDA=ON `
-            -DGGML_CUDA_FA_QUANTS="q4_0-q4_0;q8_0-q8_0;f16-f16;q8_0-q4_0" `
-            -DCMAKE_CUDA_ARCHITECTURES="89" `
-            -DCMAKE_BUILD_TYPE=Release
-
-      - name: Build llama-server
-        run: |
-          cmake --build build --config Release -j 4 --target llama-server
+          Get-ChildItem -Path "$env:CUDA_PATH\bin" -Filter "*.dll" | Where-Object { $_.Name -match '^(cudart64_|cublas64_|cublasLt64_)' } | Copy-Item -Destination "build\bin\" -Force
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: custom-llama-server-cuda
+          name: custom-llama-server-cuda-13.4
           path: |
-            build/bin/Release/*.exe
-            build/bin/Release/*.dll
+            build/bin/llama-server.exe
+            build/bin/llama-cli.exe
+            build/bin/*.dll
