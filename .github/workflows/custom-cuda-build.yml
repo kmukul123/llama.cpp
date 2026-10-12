@@ -30,12 +30,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release
           cmake --build build --config Release -j %NUMBER_OF_PROCESSORS% --target llama-server llama-cli
 
-      - name: Copy CUDA runtime DLLs
-        shell: pwsh
-        run: |
-          Get-ChildItem -Path "$env:CUDA_PATH\bin" -Filter "*.dll" | Where-Object { $_.Name -match '^(cudart64_|cublas64_|cublasLt64_)' } | Copy-Item -Destination "build\bin\" -Force
-
-      - name: Upload Artifacts
+      - name: Upload llama-server Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: custom-llama-server-cuda-13.4
@@ -43,3 +38,17 @@ jobs:
             build/bin/llama-server.exe
             build/bin/llama-cli.exe
             build/bin/*.dll
+
+      - name: Stage CUDA runtime DLLs
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "build\cudart" | Out-Null
+          Get-ChildItem -Path "$env:CUDA_PATH" -Recurse -Filter "*.dll" | Where-Object { $_.Name -match '^(cudart64_|cublas64_|cublasLt64_)' } | Copy-Item -Destination "build\cudart\" -Force
+
+      - name: Upload CUDA runtime DLLs Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cudart-llama-bin-win-cuda-13.4-x64
+          path: |
+            build/cudart/*.dll
+
