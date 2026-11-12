@@ -1,4 +1,4 @@
-name: Build Custom CUDA 13.4 llama-server
+name: Build Custom CUDA 13.5 llama-server
 
 on:
   workflow_dispatch:
@@ -10,10 +10,10 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Setup Windows CUDA 13.4
+      - name: Setup Windows CUDA 13.5
         uses: ./.github/actions/windows-setup-cuda
         with:
-          cuda_version: '13.4'
+          cuda_version: '13.5'
           cuda_arch: 'x64'
 
       - name: Install Ninja
@@ -33,7 +33,7 @@ jobs:
       - name: Upload llama-server Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: custom-llama-server-cuda-13.4
+          name: custom-llama-server-cuda-13.5
           path: |
             build/bin/llama-server.exe
             build/bin/llama-cli.exe
@@ -48,7 +48,7 @@ jobs:
       - name: Upload CUDA runtime DLLs Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: cudart-llama-bin-win-cuda-13.4-x64
+          name: cudart-llama-bin-win-cuda-13.5-x64
           path: |
             build/cudart/*.dll
 
