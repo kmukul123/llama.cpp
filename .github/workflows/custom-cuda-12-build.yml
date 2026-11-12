@@ -1,0 +1,54 @@
+name: Build Custom CUDA 12.4 llama-server
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-windows-cuda:
+    runs-on: windows-2022
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Setup Windows CUDA 12.4
+        uses: ./.github/actions/windows-setup-cuda
+        with:
+          cuda_version: '12.4'
+          cuda_arch: 'x64'
+
+      - name: Install Ninja
+        run: choco install ninja
+
+      - name: Build llama-server and llama-cli
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+          cmake -B build -G "Ninja" ^
+            -DGGML_CUDA=ON ^
+            -DGGML_CUDA_CCCL_VERSION="v3.4.3" ^
+            -DGGML_CUDA_FA_QUANTS="q4_0-q4_0;q8_0-q8_0;f16-f16;bf16-bf16;q8_0-q4_0" ^
+            -DCMAKE_CUDA_ARCHITECTURES="89" ^
+            -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --config Release -j %NUMBER_OF_PROCESSORS% --target llama-server llama-cli
+
+      - name: Upload llama-server Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: custom-llama-server-cuda-12.4
+          path: |
+            build/bin/llama-server.exe
+            build/bin/llama-cli.exe
+            build/bin/*.dll
+
+      - name: Stage CUDA runtime DLLs
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "build\cudart" | Out-Null
+          Get-ChildItem -Path "$env:CUDA_PATH" -Recurse -Filter "*.dll" | Where-Object { $_.Name -match '^(cudart64_|cublas64_|cublasLt64_)' } | Copy-Item -Destination "build\cudart\" -Force
+
+      - name: Upload CUDA runtime DLLs Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cudart-llama-bin-win-cuda-12.4-x64
+          path: |
+            build/cudart/*.dll
