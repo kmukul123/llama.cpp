@@ -707,6 +707,7 @@ struct vk_device_struct {
     uint32_t subgroup_size_log2;
     uint32_t shader_core_count;
     bool uma;
+    bool rebar;
     bool prefer_host_memory;
     bool float_controls_rte_fp16;
     bool float_controls_denorm_preserve_fp16;
@@ -836,6 +837,7 @@ struct vk_device_struct {
     vk_pipeline pipeline_add_id_f32;
 
     vk_pipeline pipeline_concat_i8, pipeline_concat_i16, pipeline_concat_i32, pipeline_concat_i64;
+    vk_pipeline pipeline_concat_transpose_i8, pipeline_concat_transpose_i16, pipeline_concat_transpose_i32;
     vk_pipeline pipeline_upscale_nearest_f32, pipeline_upscale_bilinear_f32, pipeline_upscale_bicubic_f32, pipeline_upscale_bilinear_antialias_f32;
     vk_pipeline pipeline_scale_f32;
     vk_pipeline pipeline_log[2];
@@ -1131,6 +1133,21 @@ struct vk_staging_memset {
     void * dst;
     uint32_t val;
     size_t n;
+};
+
+struct vk_buffer_region {
+    vk_buffer buf;
+    size_t offset;
+    void * host;
+    size_t size;
+};
+
+struct vk_buffer_copy_region {
+    vk_buffer dst;
+    size_t dst_offset;
+    vk_buffer src;
+    size_t src_offset;
+    size_t size;
 };
 
 struct vk_context_struct {
